@@ -5,18 +5,9 @@ from copy import deepcopy
 import lightning as L
 
 
-class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
-    def __init__(self, config, quantiles=[0.1, 0.5, 0.9]):
+class ViTMAE(ViTMAEForPreTraining):
+    def __init__(self, config):
         super().__init__(config)
-        self.quantiles = quantiles
-        self.num_quantiles = len(quantiles)
-
-        # Separate decoders for each quantile
-        self.decoders = nn.ModuleList([
-            deepcopy(self.decoder) for _ in range(self.num_quantiles)
-            ])
-        
-        self.decoder = None
 
     def forward_loss(self, pixel_values, preds, mask, interpolate_pos_encoding: bool = False):
         """
@@ -30,18 +21,11 @@ class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
         """
         target = self.patchify(pixel_values, interpolate_pos_encoding=interpolate_pos_encoding)
 
-        quantile_losses = []
-        for i, quantile in enumerate(self.quantiles):
-            pred = preds[i]
-            diff = target - pred  # (batch, num_patches, patch_dim)
-            print("diff_shape: ", diff.shape)
-            quantile_loss = torch.max(quantile * diff, (quantile - 1) * diff)  # Pinball loss
-            print("quantile_loss: ", quantile_loss.shape)
-            quantile_losses.append(quantile_loss.mean(dim=-1))  # Average over patch_dim
-
-        quantile_loss = sum(quantile_losses) / len(self.quantiles)  # Average over quantiles
-        loss = (quantile_loss * mask).sum() / mask.sum()  # Apply mask
-
+        diff = (preds - target) ** 2
+        # Average over patch_dim
+        diff = diff.mean(dim=-1)
+        # Apply mask: only compute loss on masked patches
+        loss = (diff * mask).sum() / mask.sum()
         return loss
 
     def forward(
@@ -71,23 +55,18 @@ class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
         ids_restore = outputs.ids_restore
         mask = outputs.mask
 
-        # Forward pass through each decoder
-        decoder_outputs = [
-            decoder(latent, ids_restore, interpolate_pos_encoding=interpolate_pos_encoding)
-            for decoder in self.decoders
-        ]
+        decoder_outputs = self.decoder(latent, ids_restore, interpolate_pos_encoding=interpolate_pos_encoding)
+        pred = decoder_outputs.logits
 
-        preds = [decoder_output.logits for decoder_output in decoder_outputs]  # Predictions from each decoder
-
-        # Calculate combined loss
-        loss = self.forward_loss(pixel_values, preds, mask, interpolate_pos_encoding=interpolate_pos_encoding)
+        # Calculate MSE loss
+        loss = self.forward_loss(pixel_values, pred, mask, interpolate_pos_encoding=interpolate_pos_encoding)
 
         if not return_dict:
-            return (loss, preds, mask, ids_restore) + outputs[2:]
+            return (loss, pred, mask, ids_restore) + outputs[2:]
 
         return {
             "loss": loss,
-            "preds": preds,
+            "preds": pred,
             "mask": mask,
             "ids_restore": ids_restore,
             "hidden_states": outputs.hidden_states,
@@ -96,12 +75,12 @@ class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
         
         
 
-class MultiDecoderQuantileViTMAELightning(L.LightningModule):
-    def __init__(self, config, quantiles=[0.1, 0.5, 0.9], learning_rate=1e-4):
+class ViTMAELightning(L.LightningModule):
+    def __init__(self, config, learning_rate=1.5e-4):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model = MultiDecoderQuantileViTMAE(config, quantiles=quantiles)
+        self.model = ViTMAE(config)
         self.learning_rate = learning_rate
 
     def forward(self, pixel_values):

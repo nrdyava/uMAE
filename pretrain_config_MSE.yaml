@@ -1,9 +1,7 @@
-exp_name: 'MAE_BASE_Pretrain_LR_1e-4_WRONG_LOSS'       # Experiment name
-
-quantiles: [0.1, 0.5, 0.9]
+exp_name: 'MAE_BASE_Pretrain_MSE'       # Experiment name
 
 dataloader:
-  batch_size: 128
+  batch_size: 150
   num_workers: 5
   pin_memory: True
   shuffle:
@@ -19,7 +17,7 @@ optimizer:
   lr: 0.00015
   weight_decay: 0.05
   warmup_steps: 0
-  eta_min: 0.00001
+  eta_min: 0.000001
 
 trainer:
   max_epochs: 100
