@@ -9,6 +9,7 @@ from lightning.pytorch import seed_everything
 from runner_utils import start_of_a_run
 from lightning.pytorch.strategies import DDPStrategy
 from src.models.MultiDecoderQuantileViTMAE import MultiDecoderQuantileViTMAELightning
+from src.models.MultiDecoderQuantileViTMAELinearProbe import MultiDecoderQuantileViTMAELinearProbe
 from src.datamodules.cifar_100 import DataModule as CIFAR100DataModule
 import warnings
 warnings.filterwarnings("ignore")
@@ -26,11 +27,13 @@ if __name__ == "__main__":
     # sets seeds for numpy, torch and python.random.
     seed_everything(config['seed'], workers=True)
 
+    pretrained_model_ckpt_path = config['pretrained_model_ckpt_path']
+    
     # For training the model
     model_config = ViTMAEConfig()
-    quantiles = config['quantiles']
-    model = MultiDecoderQuantileViTMAELightning(config=model_config, quantiles=quantiles, learning_rate=config['optimizer']['lr'])
-    
+    pretrained_model = MultiDecoderQuantileViTMAELightning.load_from_checkpoint(pretrained_model_ckpt_path)
+    linear_probe_model = MultiDecoderQuantileViTMAELinearProbe(pretrained_model, num_classes=100, learning_rate=config['optimizer']['lr'])
+
     datamodule = CIFAR100DataModule(data_dir='./data', batch_size=config['dataloader']['batch_size'], image_size=224, num_workers=config['dataloader']['num_workers'])
     
     wandb_logger = WandbLogger(
@@ -80,7 +83,7 @@ if __name__ == "__main__":
     
     datamodule.setup('fit')
     trainer.fit(
-        model = model, 
+        model = linear_probe_model, 
         train_dataloaders = datamodule.train_dataloader(), 
         val_dataloaders = datamodule.val_dataloader()
         )

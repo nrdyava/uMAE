@@ -1,9 +1,9 @@
-exp_name: 'MAE_BASE_Pretrain_LR_1.5e-4_Quantile-0.05-to-0.95'       # Experiment name
+exp_name: 'MAE_BASE_Pretrain_LR_1.5e-4_Quantile-0.5 + MSE'       # Experiment name
 
-quantiles: [0.05, 0.95] #[0.05, 0.5, 0.95]
+quantiles: [0.5] #[0.05, 0.5, 0.95]
 
 dataloader:
-  batch_size: 150
+  batch_size: 350
   num_workers: 5
   pin_memory: True
   shuffle:
@@ -27,7 +27,7 @@ trainer:
   check_val_every_n_epoch: 1
   accelerator: 'gpu' 
   strategy: 'ddp' #[deepspeed_stage_3, deepspeed_stage_2, ddp]
-  devices: [0, 1, 2, 3, 4, 5, 6, 7] #[0, 1, 2, 3, 4, 5, 6, 7]
+  devices: [3] #[0, 1, 2, 3, 4, 5, 6, 7]
   use_distributed_sampler: True
   log_every_n_steps: 20
   enable_checkpointing: True

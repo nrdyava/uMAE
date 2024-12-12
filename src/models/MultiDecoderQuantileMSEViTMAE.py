@@ -5,7 +5,7 @@ from copy import deepcopy
 import lightning as L
 
 
-class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
+class MultiDecoderQuantileMSEViTMAE(ViTMAEForPreTraining):
     def __init__(self, config, quantiles=[0.1, 0.5, 0.9]):
         super().__init__(config)
         self.quantiles = quantiles
@@ -13,7 +13,7 @@ class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
 
         # Separate decoders for each quantile
         self.decoders = nn.ModuleList([
-            deepcopy(self.decoder) for _ in range(self.num_quantiles)
+            deepcopy(self.decoder) for _ in range(self.num_quantiles+1)
             ])
         
         self.decoder = None
@@ -38,7 +38,13 @@ class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
             quantile_losses.append(quantile_loss.mean(dim=-1))  # Average over patch_dim
 
         quantile_loss = sum(quantile_losses) / len(self.quantiles)  # Average over quantiles
-        loss = (quantile_loss * mask).sum() / mask.sum()  # Apply mask
+        quant_loss = (quantile_loss * mask).sum() / mask.sum()  # Apply mask
+        
+        diff_mse = (preds[-1] - target) ** 2
+        diff_mse = diff_mse.mean(dim=-1)
+        mse_loss = (diff_mse * mask).sum() / mask.sum()
+        
+        loss = (mse_loss + quant_loss)/2.0
 
         return loss
 
@@ -94,12 +100,12 @@ class MultiDecoderQuantileViTMAE(ViTMAEForPreTraining):
         
         
 
-class MultiDecoderQuantileViTMAELightning(L.LightningModule):
+class MultiDecoderQuantileMSEViTMAELightning(L.LightningModule):
     def __init__(self, config, quantiles=[0.1, 0.5, 0.9], learning_rate=1e-4):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model = MultiDecoderQuantileViTMAE(config, quantiles=quantiles)
+        self.model = MultiDecoderQuantileMSEViTMAE(config, quantiles=quantiles)
         self.learning_rate = learning_rate
 
     def forward(self, pixel_values):

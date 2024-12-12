@@ -8,7 +8,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch import seed_everything
 from runner_utils import start_of_a_run
 from lightning.pytorch.strategies import DDPStrategy
-from src.models.MultiDecoderQuantileViTMAE import MultiDecoderQuantileViTMAELightning
+from src.models.MultiDecoderQuantileMSEViTMAE import MultiDecoderQuantileMSEViTMAELightning
 from src.datamodules.cifar_100 import DataModule as CIFAR100DataModule
 import warnings
 warnings.filterwarnings("ignore")
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # For training the model
     model_config = ViTMAEConfig()
     quantiles = config['quantiles']
-    model = MultiDecoderQuantileViTMAELightning(config=model_config, quantiles=quantiles, learning_rate=config['optimizer']['lr'])
+    model = MultiDecoderQuantileMSEViTMAELightning(config=model_config, quantiles=quantiles, learning_rate=config['optimizer']['lr'])
     
     datamodule = CIFAR100DataModule(data_dir='./data', batch_size=config['dataloader']['batch_size'], image_size=224, num_workers=config['dataloader']['num_workers'])
     

@@ -1,9 +1,9 @@
-exp_name: 'MAE_BASE_Pretrain_LR_1.5e-4_Quantile-0.05-to-0.95'       # Experiment name
+exp_name: 'MAE_BASE_Pretrain_LR_1.5e-4_Quantile-0.5-FineTune'       # Experiment name
 
-quantiles: [0.05, 0.95] #[0.05, 0.5, 0.95]
+pretrained_model_ckpt_path: '/proj/vondrick4/naveen/uMAE_runs/2024-12-12-02-40-01-967880 + MAE_BASE_Pretrain_LR_1.5e-4_Quantile-0.5/checkpoint-epoch=99.ckpt'  # Path to the pretrained checkpoint
 
 dataloader:
-  batch_size: 150
+  batch_size: 600
   num_workers: 5
   pin_memory: True
   shuffle:
@@ -22,12 +22,12 @@ optimizer:
   eta_min: 0.000001
 
 trainer:
-  max_epochs: 100
+  max_epochs: 500
   min_epochs: 1
   check_val_every_n_epoch: 1
   accelerator: 'gpu' 
   strategy: 'ddp' #[deepspeed_stage_3, deepspeed_stage_2, ddp]
-  devices: [0, 1, 2, 3, 4, 5, 6, 7] #[0, 1, 2, 3, 4, 5, 6, 7]
+  devices: [2, 3] #[0, 1, 2, 3, 4, 5, 6, 7]
   use_distributed_sampler: True
   log_every_n_steps: 20
   enable_checkpointing: True
