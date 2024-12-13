@@ -1,0 +1,66 @@
+exp_name: 'MAE_BASE_Pretrain_LR_1.5e-4_MSE-Quantile-0.05-to-0.95-FineTune'       # Experiment name
+
+pretrained_model_ckpt_path: '/proj/vondrick4/naveen/uMAE_runs/2024-12-12-15-33-08-303147 + MAE_BASE_Pretrain_LR_1.5e-4_Quantile-0.05-to-0.95 + MSE/checkpoint-epoch=99.ckpt'  # Path to the pretrained checkpoint
+
+dataloader:
+  batch_size: 300
+  num_workers: 5
+  pin_memory: True
+  shuffle:
+    train: True
+    val: False
+    test: False
+  persistent_workers: True
+  drop_last: False
+
+
+optimizer:
+  name: 'AdamW'   # choices: ['AdamW']
+  lr: 0.00015
+  weight_decay: 0.05
+  warmup_steps: 0
+  eta_min: 0.000001
+
+trainer:
+  max_epochs: 500
+  min_epochs: 1
+  check_val_every_n_epoch: 1
+  accelerator: 'gpu' 
+  strategy: 'ddp' #[deepspeed_stage_3, deepspeed_stage_2, ddp]
+  devices: [0, 1, 2, 3] #[0, 1, 2, 3, 4, 5, 6, 7]
+  use_distributed_sampler: True
+  log_every_n_steps: 20
+  enable_checkpointing: True
+  fast_dev_run: False
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  limit_test_batches: 0.1
+  limit_predict_batches: 0.1
+  profiler: 'None' # ['None', 'simple', 'advanced', 'pytorch']
+  num_nodes: 1
+  precision: '32-true'
+  num_sanity_val_steps: 0
+  enable_progress_bar: True
+  enable_model_summary: True
+  deterministic: True
+  benchmark: True
+  model_checkpoint_callback:
+    every_n_epochs: 1
+    monitor: 'val_loss'
+    mode: 'min'
+    save_top_k: 0  # 0 means no saving, -1 means save all.
+    filename: 'checkpoint-{epoch}'
+    enable_version_counter: False
+
+
+wandb:
+  project: coir
+
+runs_dir: '/proj/vondrick4/naveen/uMAE_runs'
+
+seed: 42
+local_time_zone: 'US/Eastern'
+TOKENIZERS_PARALLELISM: 'true'    # choices: ['true', 'false']
+CUDA_LAUNCH_BLOCKING: '1'
+TORCH_USE_CUDA_DS: '1'
+float32_matmul_precision: high
