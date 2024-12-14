@@ -56,7 +56,7 @@ trainer:
 wandb:
   project: coir
 
-runs_dir: '/proj/vondrick4/naveen/uMAE_runs'
+runs_dir: '...../uMAE_runs'
 
 seed: 42
 local_time_zone: 'US/Eastern'
